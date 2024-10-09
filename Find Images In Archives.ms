@@ -13,6 +13,11 @@ Script for bulk find images in archives=
 [1.0.0]
 * Initial release =
 
+[FILES]
+extract.bat=
+recursive-find-archives.bat=
+7za.exe=
+
 [SCRIPT]
 */
 
@@ -323,7 +328,7 @@ rollout _rAboutFindImagesInArchives "About" category: 999 (
 		
 		fn bgUpdate = (
 			local url = "https://raw.githubusercontent.com/MastaArt/GC-Find-Images-In-Archives/main/"
-			local main = url + "Batch GLB Converter.ms"
+			local main = url + "Find Images In Archives.ms"
 			
 			local this = getThisScriptFileName()
 			local p = getFileNamePath (getThisScriptFileName())
