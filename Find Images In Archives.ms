@@ -13,11 +13,6 @@ Script for bulk find images in archives=
 [1.0.0]
 * Initial release =
 
-[FILES]
-extract.bat=
-recursive-find-archives.bat=
-7za.exe=
-
 [SCRIPT]
 */
 
@@ -78,6 +73,11 @@ rollout _rBatchFindImagesInArchives "Find Images In Archives" category: 1 (
 		button btnSearchInputPath "..." width: 35 height: 24  align: #right offset: [0, -1]	
 	)
 	
+	group "Search Formats" (
+		label lblFormats "Ex.: jpg, png, jpeg" align: #left
+		edittext edtFormats ""
+	)
+	
 	button btnScanFolder "Scan Folder" width: 260 offset: [0, 10]
 	button btnBatchProcess "Batch Process" height: 36 width: 260 offset: [0, 10]
 	checkbox cbxIgnoreProcessed "Ignore Processed Archives" checked: true
@@ -88,7 +88,10 @@ rollout _rBatchFindImagesInArchives "Find Images In Archives" category: 1 (
 	fn boost = if (((maxVersion())[1] / 1000) >= 13) do windows.processPostedMessages() 
 	
 	fn loadSettings = (
-		edtInputPath.text = '*'.get "tnt_path"		
+		edtInputPath.text = '*'.get "tnt_path"	
+		local formats = '*'.get "formats"
+		if (formats == "") do formats = "jpg, png, jpeg"
+		edtFormats.text = formats	
 		cbxIgnoreProcessed.checked = '*'.get "cbxIgnoreProcessed" type: #bool_false
 	)
 	
@@ -113,8 +116,13 @@ rollout _rBatchFindImagesInArchives "Find Images In Archives" category: 1 (
 		local currentPath = getFileNamePath (getThisScriptFileName())
 		
         if (f == undefined or not doesFileExist f) do return false
+		local fmt = ""
+			
+		for i in (FilterString edtFormats.text ",") do (
+			fmt += "*." + (trimLeft (trimRight i)) + " "
+		)
 		
-		local args = f + ";" + o
+		local args = f + ";" + o + ";" + fmt
 		args = substituteString args "/" @"\"
 		
 		local cmd = "extract.bat \"" +  args + "\""
@@ -175,7 +183,8 @@ rollout _rBatchFindImagesInArchives "Find Images In Archives" category: 1 (
 		return getINISetting ini "FILES"
 	)
 	
-	fn findAndCopyImages p types: #("*.jpg", "*.jpeg", "*.png") = (
+	fn findAndCopyImages p = (
+		local types = #()
 		local root = edtInputPath.text
 		local outDir = root + @"images\"
 		local badPatterns = #(
@@ -190,6 +199,11 @@ rollout _rBatchFindImagesInArchives "Find Images In Archives" category: 1 (
 			@"*.RGB_*",
 			@"*.Alpha*",
 			@"*.VRay*"
+		)
+		
+		for i in (FilterString edtFormats.text ",") do (
+			local tt = "*." + (trimLeft (trimRight i))
+			append types tt
 		)
 		
 		makeDir outDir all: true
@@ -232,7 +246,7 @@ rollout _rBatchFindImagesInArchives "Find Images In Archives" category: 1 (
 			extractZip a o
 			
 			findAndCopyImages o
-				
+			
 			rmDir o
 			
 			setProcessed a
@@ -290,6 +304,7 @@ rollout _rBatchFindImagesInArchives "Find Images In Archives" category: 1 (
 	)
 	
 	on cbxIgnoreProcessed changed v do '*'.add "cbxIgnoreProcessed" v
+	on edtFormats changed v do '*'.add "formats" v
 )
 
 rollout _rAboutFindImagesInArchives "About" category: 999 (
@@ -327,8 +342,8 @@ rollout _rAboutFindImagesInArchives "About" category: 999 (
 		)
 		
 		fn bgUpdate = (
-			local url = "https://raw.githubusercontent.com/MastaArt/GC-Find-Images-In-Archives/main/"
-			local main = url + "Find Images In Archives.ms"
+			local url = "https://raw.githubusercontent.com/MastaMan/GC-Batch-GLB-Converter/main/"
+			local main = url + "Batch GLB Converter.ms"
 			
 			local this = getThisScriptFileName()
 			local p = getFileNamePath (getThisScriptFileName())
@@ -419,7 +434,8 @@ rollout _rAboutFindImagesInArchives "About" category: 999 (
 			try (floaterBatchFindImagesInArchives.title = i.name + " " + i.version) catch()
 			try (_rGCAutoModeration_Main.title = i.name + " v" +  i.version) catch()
 			
-			updateWorker()
+			---!!!!
+			--updateWorker()
 			
 			local x = '*'.get "x"
 			local y = '*'.get "y"
