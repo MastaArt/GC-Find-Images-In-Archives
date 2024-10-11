@@ -65,12 +65,17 @@ global '*' = '@'()
 
 
 try(closeRolloutFloater floaterBatchFindImagesInArchives) catch()
-global floaterBatchFindImagesInArchives = newRolloutFloater "Find Images In Archives" 300 300
+global floaterBatchFindImagesInArchives = newRolloutFloater "Find Images In Archives" 300 360
 
 rollout _rBatchFindImagesInArchives "Find Images In Archives" category: 1 (
 	group "Folder With Archives" (
 		edittext edtInputPath "" readonly: true across: 2 align: #left fieldwidth: 215 height: 22		
 		button btnSearchInputPath "..." width: 35 height: 24  align: #right offset: [0, -1]	
+	)
+	
+	group "Save Result To" (
+		edittext edtOutputPath "" readonly: true across: 2 align: #left fieldwidth: 215 height: 22		
+		button btnSearchOutputPath "..." width: 35 height: 24  align: #right offset: [0, -1]	
 	)
 	
 	group "Search Formats" (
@@ -89,6 +94,7 @@ rollout _rBatchFindImagesInArchives "Find Images In Archives" category: 1 (
 	
 	fn loadSettings = (
 		edtInputPath.text = '*'.get "tnt_path"	
+		edtOutputPath.text = '*'.get "out_path"	
 		local formats = '*'.get "formats"
 		if (formats == "") do formats = "jpg, png, jpeg"
 		edtFormats.text = formats	
@@ -129,7 +135,7 @@ rollout _rBatchFindImagesInArchives "Find Images In Archives" category: 1 (
 		
 		local curDir = sysInfo.currentDir
 		sysInfo.currentDir = currentPath
-		print cmd
+		
 		hiddenDosCommand cmd exitCode: &exitcode donotwait: false
 		
 		sysInfo.currentDir = curDir
@@ -163,6 +169,11 @@ rollout _rBatchFindImagesInArchives "Find Images In Archives" category: 1 (
 		return p +"processed_" + s + ".ini"
 	)
 	
+	fn delProcessedFile = (
+		local ini = getProcessedIni()
+		deleteFile ini
+	)
+	
 	fn setProcessed f = (
 		local ini = getProcessedIni()
 		setINISetting ini "FILES" f "true"
@@ -186,7 +197,7 @@ rollout _rBatchFindImagesInArchives "Find Images In Archives" category: 1 (
 	fn findAndCopyImages p = (
 		local types = #()
 		local root = edtInputPath.text
-		local outDir = root + @"images\"
+		local outDir = edtOutputPath.text
 		local badPatterns = #(
 			@"*\resources\*", 
 			@"*\renders\*", 
@@ -230,9 +241,14 @@ rollout _rBatchFindImagesInArchives "Find Images In Archives" category: 1 (
 	
 	fn batchProcess = (
 		local p = edtInputPath.text
-		if (p == "") do return messageBox "Please select folder" title: "Warning!"
+		if (p == "") do return messageBox "Please select input folder" title: "Warning!"
+		
+		local op = edtOutputPath.text
+		if (op == "") do return messageBox "Please select out folder" title: "Warning!"
+		
 		local aa = getArchives()
 		if (aa.count == 0) do return messageBox "Not found archives in folder!\nPlease run Rescan process!" title: "Warning!"
+		if (cbxIgnoreProcessed.checked == false) do delProcessedFile()
 		
 		for i in 1 to aa.count do (
 			local a = aa[i]
@@ -298,6 +314,20 @@ rollout _rBatchFindImagesInArchives "Find Images In Archives" category: 1 (
 		updateUI()
 	)
 	
+	on btnSearchOutputPath pressed do (
+		local d = '*'.get "out_path"
+		local p = getSavePath initialDir: d
+		
+		if (p == undefined) do return false
+		p = (trimRight p @"\") + @"\"
+		
+		edtInputPath.text = p
+		'*'.add "out_path" p
+		
+		loadSettings()
+		updateUI()
+	)
+	
 	on _rBatchFindImagesInArchives open do (
 		loadSettings()
 		updateUI()
@@ -342,7 +372,7 @@ rollout _rAboutFindImagesInArchives "About" category: 999 (
 		)
 		
 		fn bgUpdate = (
-			local url = "https://raw.githubusercontent.com/MastaMan/GC-Batch-GLB-Converter/main/"
+			local url = "https://raw.githubusercontent.com/MastaArt/GC-Find-Images-In-Archives/main/"
 			local main = url + "Batch GLB Converter.ms"
 			
 			local this = getThisScriptFileName()
@@ -434,8 +464,8 @@ rollout _rAboutFindImagesInArchives "About" category: 999 (
 			try (floaterBatchFindImagesInArchives.title = i.name + " " + i.version) catch()
 			try (_rGCAutoModeration_Main.title = i.name + " v" +  i.version) catch()
 			
-			---!!!!
-			--updateWorker()
+			
+			updateWorker()
 			
 			local x = '*'.get "x"
 			local y = '*'.get "y"
